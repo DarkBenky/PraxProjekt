@@ -5,33 +5,107 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"github.com/go-faker/faker/v4"
+	"github.com/labstack/echo/v4"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/labstack/echo/v4/middleware"
 )
 
+var db *sql.DB
+
 type User struct {
-	idUser      int    `json:"idUser"`
-	username    string `json:"username"`
-	displayName string `json:"displayName"`
-	email       string `json:"email"`
+	IDUser      int    `json:"idUser"`
+	Username    string `json:"username"`
+	DisplayName string `json:"displayName"`
+	Email       string `json:"email"`
 }
 
 type Post struct {
-	idPost      int    `json:"idPost"`
-	contentText string `json:"content_text"`
-	createdAt   string `json:"created_at"`
-	userID      int    `json:"userID"`
+	IDPost      int    `json:"idPost"`
+	ContentText string `json:"content_text"`
+	CreatedAt   string `json:"created_at"`
+	UserID      int    `json:"userID"`
 }
 
 type Comment struct {
-	idComment   int    `json:"idComment"`
-	idPost      int    `json:"idPost"`
-	idUser      int    `json:"idUser"`
-	contentText string `json:"content_text"`
-	createdAt   string `json:"created_at"`
+	IDComment   int    `json:"idComment"`
+	IDPost      int    `json:"idPost"`
+	IDUser      int    `json:"idUser"`
+	ContentText string `json:"content_text"`
+	CreatedAt   string `json:"created_at"`
 }
+
+func GetAllPosts(c echo.Context) error {
+	// Get all posts from the database
+	query := `SELECT idPost, content_text, created_at, userID FROM posts`
+	rows, err := db.Query(query)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.IDPost, &post.ContentText, &post.CreatedAt, &post.UserID); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating over rows"})
+	}
+
+	// Return posts as JSON response
+	return c.JSON(http.StatusOK, posts)
+}
+
+func GetAllCommentsToPost(c echo.Context) error {
+	postID := c.QueryParam("idPost")
+
+	// Get all comments from the database
+	query := `SELECT idComment, idPost, idUser, content_text, created_at FROM comments WHERE idPost = ?`
+	rows, err := db.Query(query, postID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query comments"})
+	}
+	defer rows.Close()
+
+	var comments []Comment
+	for rows.Next() {
+		var comment Comment
+		if err := rows.Scan(&comment.IDComment, &comment.IDPost, &comment.IDUser, &comment.ContentText, &comment.CreatedAt); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan comment data"})
+		}
+		comments = append(comments, comment)
+	}
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating over rows"})
+	}
+
+	// Return comments as JSON response
+	return c.JSON(http.StatusOK, comments)
+}
+
+func GetUserByID(c echo.Context) error {
+	userID := c.QueryParam("id")
+
+	// Get user from the database
+	query := `SELECT idUser, username, displayName, email FROM users WHERE idUser = ?`
+	row := db.QueryRow(query, userID)
+
+	var user User
+	if err := row.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan user data"})
+	}
+
+	// Return user as JSON response
+	return c.JSON(http.StatusOK, user)
+}
+
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -42,6 +116,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer database.Close()
+
+	db = database
 
 	// Create tables
 	createUsersTable(database)
@@ -56,6 +132,20 @@ func main() {
 	insertRandomComments(database, n)
 
 	fmt.Printf("Inserted %d random users, posts, and comments.\n", n)
+
+	// Start the server
+	e := echo.New()
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:8080"}, // Adjust as necessary
+		AllowMethods: []string{http.MethodGet, http.MethodPost},
+	}))
+
+	e.GET("/posts", GetAllPosts)
+	e.GET("/comments", GetAllCommentsToPost)
+	e.GET("/users", GetUserByID)
+	e.Logger.Fatal(e.Start(":5050"))
+
 }
 
 // Create Users table
