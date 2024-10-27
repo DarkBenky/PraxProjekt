@@ -1,44 +1,47 @@
 <template>
-  <div class="feed-container">
-    <!-- Posts with Comments -->
-    <div class="posts-section">
-      <div v-for="post in Posts" :key="post.idPost" class="post">
-        <!-- Post Header with User Info -->
-        <div class="post-header">
-          <UserProfile :userId="post.userID" />
-        </div>
+  <div>
+    <NavBar userId="1"></NavBar>
+    <div class="feed-container">
+      <!-- Posts with Comments -->
+      <div class="posts-section">
+        <div v-for="post in Posts" :key="post.idPost" class="post">
+          <!-- Post Header with User Info -->
+          <div class="post-header">
+            <UserProfile :userId="post.userID" />
+          </div>
 
-        <!-- Post Content -->
-        <div class="post-content" @click="toggleComments(post.idPost)">
-          <p>{{ post.content_text }}</p>
-          <small class="post-date">{{ formatDate(post.created_at) }}</small>
-          <button class="toggle-comments">
-            {{ activePostId === post.idPost ? 'Hide Comments' : 'Show Comments' }}
-          </button>
-        </div>
-        
-        <!-- Comments Section -->
-        <div v-if="activePostId === post.idPost" class="comments-section">
-          <div v-if="loadingComments" class="loading">
-            Loading comments...
+          <!-- Post Content -->
+          <div class="post-content" @click="toggleComments(post.idPost)">
+            <p>{{ post.content_text }}</p>
+            <small class="post-date">{{ formatDate(post.created_at) }}</small>
+            <button class="toggle-comments">
+              {{ activePostId === post.idPost ? 'Hide Comments' : 'Show Comments' }}
+            </button>
           </div>
-          <div v-else-if="commentsError" class="error">
-            {{ commentsError }}
-          </div>
-          <div v-else>
-            <ul v-if="comments.length > 0" class="comments-list">
-              <li v-for="comment in comments" :key="comment.idComment" class="comment">
-                <!-- Comment Header with User Info -->
-                <div class="comment-header">
-                  <UserProfile :userId="comment.idUser" compact />
-                </div>
-                <div class="comment-content">
-                  <p>{{ comment.content_text }}</p>
-                  <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
-                </div>
-              </li>
-            </ul>
-            <p v-else class="no-comments">No comments yet</p>
+
+          <!-- Comments Section -->
+          <div v-if="activePostId === post.idPost" class="comments-section">
+            <div v-if="loadingComments" class="loading">
+              Loading comments...
+            </div>
+            <div v-else-if="commentsError" class="error">
+              {{ commentsError }}
+            </div>
+            <div v-else>
+              <ul v-if="comments.length > 0" class="comments-list">
+                <li v-for="comment in comments" :key="comment.idComment" class="comment">
+                  <!-- Comment Header with User Info -->
+                  <div class="comment-header">
+                    <UserProfile :userId="comment.idUser" compact />
+                  </div>
+                  <div class="comment-content">
+                    <p>{{ comment.content_text }}</p>
+                    <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="no-comments">No comments yet</p>
+            </div>
           </div>
         </div>
       </div>
@@ -48,13 +51,15 @@
 
 <script>
 import axios from 'axios'
+import NavBar from './components/NavBar.vue';
 import UserProfile from './components/UserProfile.vue';
 
 export default {
   name: 'App',
-  
+
   components: {
-    UserProfile
+    UserProfile,
+    NavBar
   },
 
   data() {
@@ -67,11 +72,11 @@ export default {
       commentsError: null
     }
   },
-  
+
   created() {
     this.GetAllPosts()
   },
-  
+
   methods: {
     GetAllPosts() {
       axios.get(this.url + "/posts")
@@ -96,7 +101,7 @@ export default {
     async fetchComments(postId) {
       this.loadingComments = true
       this.commentsError = null
-      
+
       try {
         const response = await axios.get(`${this.url}/comments`, {
           params: {
@@ -189,7 +194,9 @@ export default {
   padding-left: 1em;
 }
 
-.loading, .error, .no-comments {
+.loading,
+.error,
+.no-comments {
   padding: 1em;
   text-align: center;
 }

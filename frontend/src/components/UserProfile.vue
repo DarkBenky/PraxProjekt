@@ -1,105 +1,147 @@
 <template>
-    <div :class="['user-profile', { 'compact': compact }]">
-      <div v-if="loading" class="loading">
-        Loading user...
-      </div>
-      <div v-else-if="error" class="error">
-        {{ error }}
-      </div>
-      <div v-else class="profile-content">
-        <div class="avatar">
-          {{ initials }}
+    <div :class="['user-profile', { 'compact': compact, 'expanded': expanded }]">
+        <div v-if="loading" class="loading">
+            Loading user...
         </div>
-        <div class="user-info">
-          <div class="display-name">{{ user.displayName }}</div>
-          <div v-if="!compact" class="username">@{{ user.username }}</div>
+        <div v-else-if="error" class="error">
+            {{ error }}
         </div>
-      </div>
+        <div v-else class="profile-content">
+            <div class="avatar">
+                {{ initials }}
+            </div>
+            <div class="user-info">
+                <div class="display-name">{{ user.displayName }}</div>
+                <div v-if="!compact" class="username">
+                    <div v-if="expanded">
+                        <p>Username: {{ user.username }}</p>
+                        <p>Email: {{ user.email }}</p>
+                        <p>Display Name: {{ user.displayName }}</p>
+                        <h1>Posts</h1>
+                        <div>
+                            <div v-for="post in usersPosts" :key="post.idPost" class="post">
+                                <p>{{ post.content_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Close Button for Full-Screen Mode -->
+        <button v-if="expanded" class="close-button" @click="$emit('close')">Close</button>
     </div>
-  </template>
-  
-  <script>
-  import axios from 'axios'
-  
-  export default {
+</template>
+
+<script>
+import axios from 'axios'
+
+export default {
     name: 'UserProfile',
-    
+
     props: {
-      userId: {
-        type: Number,
-        required: true
-      },
-      compact: {
-        type: Boolean,
-        default: false
-      }
-    },
-    
-    data() {
-      return {
-        url: "http://localhost:5050",
-        user: null,
-        loading: true,
-        error: null
-      }
-    },
-    
-    computed: {
-      initials() {
-        if (!this.user || !this.user.displayName) return '?'
-        return this.user.displayName
-          .split(' ')
-          .map(word => word[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2)
-      }
-    },
-    
-    watch: {
-      userId: {
-        immediate: true,
-        handler: 'fetchUser'
-      }
-    },
-    
-    methods: {
-      async fetchUser() {
-        this.loading = true
-        this.error = null
-        
-        try {
-          const response = await axios.get(`${this.url}/users`, {
-            params: {
-              id: this.userId
-            }
-          })
-          this.user = response.data
-        } catch (error) {
-          this.error = 'Failed to load user'
-          console.error('Error fetching user:', error)
-        } finally {
-          this.loading = false
+        userId: {
+            type: Number,
+            required: true
+        },
+        compact: {
+            type: Boolean,
+            default: false
+        },
+        expanded: {
+            type: Boolean,
+            default: false
         }
-      }
+    },
+
+    data() {
+        return {
+            url: "http://localhost:5050",
+            user: null,
+            loading: true,
+            error: null,
+            usersPosts: []
+        }
+    },
+
+    computed: {
+        initials() {
+            if (!this.user || !this.user.displayName) return '?'
+            return this.user.displayName
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)
+        }
+    },
+
+    watch: {
+        userId: {
+            immediate: true,
+            handler: 'fetchUser'
+        },
+        expanded: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal) {
+                    this.getUserPosts()
+                }
+            }
+        }
+    },
+
+    methods: {
+        async fetchUser() {
+            this.loading = true
+            this.error = null
+
+            try {
+                const response = await axios.get(`${this.url}/users`, {
+                    params: {
+                        id: this.userId
+                    }
+                })
+                this.user = response.data
+            } catch (error) {
+                this.error = 'Failed to load user'
+                console.error('Error fetching user:', error)
+            } finally {
+                this.loading = false
+            }
+        },
+        async getUserPosts() {
+            if (!this.expanded) return  // Prevent fetching if not expanded
+            try {
+                const response = await axios.get(`${this.url}/posts/user`, {
+                    params: {
+                        id: this.userId
+                    }
+                })
+                this.usersPosts = response.data
+            } catch (error) {
+                console.error('Error fetching user posts:', error)
+                this.usersPosts = []
+            }
+        }
     }
-  }
-  </script>
-  
-  <style scoped>
-  .user-profile {
+}
+</script>
+
+<style scoped>
+.user-profile {
     display: flex;
     align-items: center;
     padding: 0.5em;
-  }
-  
-  .profile-content {
+    transition: all 0.3s ease;
+}
+
+.profile-content {
     display: flex;
     align-items: center;
     gap: 0.5em;
-  }
-  
-  .avatar {
+}
+
+.avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -110,39 +152,88 @@
     justify-content: center;
     font-weight: bold;
     font-size: 1em;
-  }
-  
-  .compact .avatar {
+}
+
+.compact .avatar {
     width: 30px;
     height: 30px;
     font-size: 0.8em;
-  }
-  
-  .user-info {
+}
+
+.user-info {
     display: flex;
     flex-direction: column;
-  }
-  
-  .display-name {
+}
+
+.display-name {
     font-weight: bold;
     color: #333;
-  }
-  
-  .username {
+}
+
+.username {
     color: #666;
     font-size: 0.9em;
-  }
-  
-  .compact .user-info {
+}
+
+.compact .user-info {
     font-size: 0.9em;
-  }
-  
-  .loading, .error {
+}
+
+.loading,
+.error {
     font-size: 0.9em;
     color: #666;
-  }
-  
-  .error {
+}
+
+.error {
     color: #d32f2f;
-  }
-  </style>
+}
+
+/* Full-screen mode */
+.expanded {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.expanded .profile-content {
+    flex-direction: column;
+    align-items: center;
+}
+
+.expanded .avatar {
+    width: 100px;
+    height: 100px;
+    font-size: 2em;
+}
+
+.expanded .display-name {
+    font-size: 1.5em;
+}
+
+.expanded .username {
+    font-size: 1.2em;
+    color: #aaa;
+}
+
+/* Close button for full-screen mode */
+.close-button {
+    position: absolute;
+    top: 2rem;
+    right: 3rem;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+</style>

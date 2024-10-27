@@ -63,6 +63,33 @@ func GetAllPosts(c echo.Context) error {
 	return c.JSON(http.StatusOK, posts)
 }
 
+func GetPostByUserID(c echo.Context) error {
+	userID := c.QueryParam("id")
+
+	// Get all posts from the database
+	query := `SELECT idPost, content_text, created_at, userID FROM posts WHERE userID = ?`
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query posts"})
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.IDPost, &post.ContentText, &post.CreatedAt, &post.UserID); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating over rows"})
+	}
+
+	// Return posts as JSON response
+	return c.JSON(http.StatusOK, posts)
+}
+
 func GetAllCommentsToPost(c echo.Context) error {
 	postID := c.QueryParam("idPost")
 
@@ -144,6 +171,7 @@ func main() {
 	e.GET("/posts", GetAllPosts)
 	e.GET("/comments", GetAllCommentsToPost)
 	e.GET("/users", GetUserByID)
+	e.GET("/posts/user", GetPostByUserID)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
