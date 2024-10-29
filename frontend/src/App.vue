@@ -25,10 +25,10 @@ export default {
     }
   },
 
-  created() {
-    this.GetAllPosts()
-    this.GetAllUsers()
-  },
+  // created() {
+  //   this.GetAllPosts()
+  //   this.GetAllUsers()
+  // },
 
   methods: {
 

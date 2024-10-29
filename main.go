@@ -223,7 +223,7 @@ func main() {
 	createCommentsTable(database)
 
 	// Generate random users, posts, and comments
-	n := 50 // Number of random entries to generate
+	n := 5 // Number of random entries to generate
 
 	fmt.Printf("Generating %d random users...\n", n)
 	insertRandomUsers(n)

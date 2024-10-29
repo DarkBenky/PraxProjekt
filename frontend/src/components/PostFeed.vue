@@ -1,6 +1,6 @@
 <template>
     <div>
-        <NavBar :user="getUserWithId(1)"></NavBar>
+        <NavBar :user="getUserWithId($store.state.userId)"></NavBar>
         <div class="feed-container">
             <div class="posts-section">
                 <div v-for="post in posts" :key="post.idPost" class="post">
