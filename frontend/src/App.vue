@@ -36,22 +36,22 @@ export default {
       return this.Users.find(user => user.idUser === id)
     },
 
-    async GetAllPosts() {
-      axios.get(this.url + "/posts")
-        .then(response => {
-          this.Posts = response.data
-        })
-        .catch(error => {
-          console.error('Error fetching posts:', error)
-        })
-    },
+    // async GetAllPosts() {
+    //   axios.get(this.url + "/posts")
+    //     .then(response => {
+    //       this.Posts = response.data
+    //     })
+    //     .catch(error => {
+    //       console.error('Error fetching posts:', error)
+    //     })
+    // },
 
-    async GetAllUsers() {
-      axios.get(this.url + "/users")
-        .then(response => {
-          this.Users = response.data
-        })
-    },
+    // async GetAllUsers() {
+    //   axios.get(this.url + "/users")
+    //     .then(response => {
+    //       this.Users = response.data
+    //     })
+    // },
 
     async toggleComments(postId) {
       if (this.activePostId === postId) {

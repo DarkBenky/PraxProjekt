@@ -241,7 +241,9 @@ func main() {
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:8080"}, // Adjust as necessary
-		AllowMethods: []string{http.MethodGet, http.MethodPost},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		AllowHeaders: []string{"*"},
+		AllowCredentials: true,
 	}))
 
 	e.GET("/posts", GetAllPosts)
