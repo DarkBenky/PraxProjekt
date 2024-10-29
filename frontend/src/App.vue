@@ -1,65 +1,16 @@
 <template>
   <div>
-    <NavBar userId="1"></NavBar>
-    <div class="feed-container">
-      <!-- Posts with Comments -->
-      <div class="posts-section">
-        <div v-for="post in Posts" :key="post.idPost" class="post">
-          <!-- Post Header with User Info -->
-          <div class="post-header">
-            <UserProfile :userId="post.userID" />
-          </div>
-
-          <!-- Post Content -->
-          <div class="post-content" @click="toggleComments(post.idPost)">
-            <p>{{ post.content_text }}</p>
-            <small class="post-date">{{ formatDate(post.created_at) }}</small>
-            <button class="toggle-comments">
-              {{ activePostId === post.idPost ? 'Hide Comments' : 'Show Comments' }}
-            </button>
-          </div>
-
-          <!-- Comments Section -->
-          <div v-if="activePostId === post.idPost" class="comments-section">
-            <div v-if="loadingComments" class="loading">
-              Loading comments...
-            </div>
-            <div v-else-if="commentsError" class="error">
-              {{ commentsError }}
-            </div>
-            <div v-else>
-              <ul v-if="comments.length > 0" class="comments-list">
-                <li v-for="comment in comments" :key="comment.idComment" class="comment">
-                  <!-- Comment Header with User Info -->
-                  <div class="comment-header">
-                    <UserProfile :userId="comment.idUser" compact />
-                  </div>
-                  <div class="comment-content">
-                    <p>{{ comment.content_text }}</p>
-                    <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
-                  </div>
-                </li>
-              </ul>
-              <p v-else class="no-comments">No comments yet</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
-import NavBar from './components/NavBar.vue';
-import UserProfile from './components/UserProfile.vue';
 
 export default {
   name: 'App',
 
   components: {
-    UserProfile,
-    NavBar
   },
 
   data() {
@@ -69,22 +20,36 @@ export default {
       activePostId: null,
       comments: [],
       loadingComments: false,
-      commentsError: null
+      commentsError: null,
+      Users: [],
     }
   },
 
   created() {
     this.GetAllPosts()
+    this.GetAllUsers()
   },
 
   methods: {
-    GetAllPosts() {
+
+    getUserWithId(id) {
+      return this.Users.find(user => user.idUser === id)
+    },
+
+    async GetAllPosts() {
       axios.get(this.url + "/posts")
         .then(response => {
           this.Posts = response.data
         })
         .catch(error => {
           console.error('Error fetching posts:', error)
+        })
+    },
+
+    async GetAllUsers() {
+      axios.get(this.url + "/users")
+        .then(response => {
+          this.Users = response.data
         })
     },
 

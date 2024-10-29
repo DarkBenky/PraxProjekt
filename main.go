@@ -10,8 +10,8 @@ import (
 
 	"github.com/go-faker/faker/v4"
 	"github.com/labstack/echo/v4"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *sql.DB
@@ -61,6 +61,54 @@ func GetAllPosts(c echo.Context) error {
 
 	// Return posts as JSON response
 	return c.JSON(http.StatusOK, posts)
+}
+
+func GetUsers() []User {
+	// Get all users from the database
+	query := `SELECT idUser, username, displayName, email FROM users`
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
+			log.Fatal(err)
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return users
+}
+
+func GetPosts() []Post {
+	// Get all posts from the database
+	query := `SELECT idPost, content_text, created_at, userID FROM posts`
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var post Post
+		if err := rows.Scan(&post.IDPost, &post.ContentText, &post.CreatedAt, &post.UserID); err != nil {
+			log.Fatal(err)
+		}
+		posts = append(posts, post)
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return posts
 }
 
 func GetPostByUserID(c echo.Context) error {
@@ -133,9 +181,32 @@ func GetUserByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, user)
 }
 
+func GetAllUsers(c echo.Context) error {
+	// Get all users from the database
+	query := `SELECT idUser, username, displayName, email FROM users`
+	rows, err := db.Query(query)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to query users"})
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan user data"})
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Error iterating over rows"})
+	}
+
+	// Return users as JSON response
+	return c.JSON(http.StatusOK, users)
+}
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 
 	// Open a connection to the SQLite database
 	database, err := sql.Open("sqlite3", "db.db")
@@ -154,11 +225,16 @@ func main() {
 	// Generate random users, posts, and comments
 	n := 50 // Number of random entries to generate
 
-	insertRandomUsers(database, n)
-	insertRandomPosts(database, n)
-	insertRandomComments(database, n)
+	fmt.Printf("Generating %d random users...\n", n)
+	insertRandomUsers(n)
 
-	fmt.Printf("Inserted %d random users, posts, and comments.\n", n)
+	n = n / 2
+	fmt.Printf("Generating %d random posts...\n", n)
+	insertRandomPosts(n)
+
+	n = n / 2
+	fmt.Printf("Generating %d random comments...\n", n)
+	insertRandomComments(n)
 
 	// Start the server
 	e := echo.New()
@@ -170,7 +246,8 @@ func main() {
 
 	e.GET("/posts", GetAllPosts)
 	e.GET("/comments", GetAllCommentsToPost)
-	e.GET("/users", GetUserByID)
+	e.GET("/user", GetUserByID)
+	e.GET("/users", GetAllUsers)
 	e.GET("/posts/user", GetPostByUserID)
 	e.Logger.Fatal(e.Start(":5050"))
 
@@ -228,8 +305,23 @@ func createCommentsTable(db *sql.DB) {
 	fmt.Println("Comments table created")
 }
 
-// Insert n random users
-func insertRandomUsers(db *sql.DB, n int) {
+// insertRandomUsers generates and inserts synthetic user data into the database for testing purposes.
+// It creates 'n' users with randomly generated usernames, display names, and emails using the faker library.
+//
+// Parameters:
+//   - n: The number of random users to generate and insert
+//
+// The function will:
+//   - Generate unique random usernames, display names and emails for each user
+//   - Insert the generated data into the 'users' table
+//   - Print confirmation message after successful insertion
+//
+// Example usage:
+//
+//	insertRandomUsers(100) // Generates 100 random users
+//
+// Note: This function will fail fast with log.Fatal if any database errors occur
+func insertRandomUsers(n int) {
 	for i := 0; i < n; i++ {
 		username := faker.Username()
 		displayName := faker.Username()
@@ -243,35 +335,83 @@ func insertRandomUsers(db *sql.DB, n int) {
 	fmt.Printf("Inserted %d random users.\n", n)
 }
 
-// Insert n random posts
-func insertRandomPosts(db *sql.DB, n int) {
-	for i := 0; i < n; i++ {
-		content := faker.Sentence()
-		createdAt := time.Now().Format(time.RFC3339)
-		userID := rand.Intn(n) + 1 // Random user ID between 1 and n
+// insertRandomPosts generates and inserts synthetic post data for existing users in the database.
+// For each user, it creates a random number of posts (1 to n) with randomly generated content.
+//
+// Parameters:
+//   - n: The maximum number of posts to generate per user
+//
+// The function will:
+//   - Retrieve all existing users from the database
+//   - For each user, generate between 1 and n random posts
+//   - Set the creation timestamp to the current time
+//   - Insert the generated posts into the 'posts' table
+//   - Print confirmation message after successful insertion
+//
+// Example usage:
+//
+//	insertRandomPosts(5) // Generates up to 5 posts per user
+//
+// Note:
+//   - Requires existing users in the database
+//   - Will fail fast with log.Fatal if any database errors occur
+func insertRandomPosts(n int) {
+	Users := GetUsers()
 
-		_, err := db.Exec(`INSERT INTO posts (content_text, created_at, userID) VALUES (?, ?, ?)`,
-			content, createdAt, userID)
-		if err != nil {
-			log.Fatal(err)
+	for _, user := range Users {
+		numberOfPosts := rand.Intn(n) + 1
+		for i := 0; i < numberOfPosts; i++ {
+			content := faker.Sentence()
+			createdAt := time.Now().Format(time.RFC3339)
+			_, err := db.Exec(`INSERT INTO posts (content_text, created_at, userID) VALUES (?, ?, ?)`,
+				content, createdAt, user.IDUser)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
-	fmt.Printf("Inserted %d random posts.\n", n)
+	fmt.Printf("Inserted random posts for %d users.\n", len(Users))
 }
 
-// Insert n random comments
-func insertRandomComments(db *sql.DB, n int) {
-	for i := 0; i < n; i++ {
-		content := faker.Sentence()
-		createdAt := time.Now().Format(time.RFC3339)
-		postID := rand.Intn(n) + 1 // Random post ID between 1 and n
-		userID := rand.Intn(n) + 1 // Random user ID between 1 and n
+// insertRandomComments generates and inserts synthetic comment data for existing posts in the database.
+// For each post, it creates a random number of comments (1 to n) with randomly generated content
+// and assigns them to random users.
+//
+// Parameters:
+//   - n: The maximum number of comments to generate per post
+//
+// The function will:
+//   - Retrieve all existing posts and users from the database
+//   - For each post, generate between 1 and n random comments
+//   - Randomly assign each comment to an existing user
+//   - Set the creation timestamp to the current time
+//   - Insert the generated comments into the 'comments' table
+//   - Print confirmation message after successful insertion
+//
+// Example usage:
+//
+//	insertRandomComments(10) // Generates up to 10 comments per post
+//
+// Note:
+//   - Requires existing posts and users in the database
+//   - Will fail fast with log.Fatal if any database errors occur
+//   - Uses random user selection, so comment distribution may not be uniform
+func insertRandomComments(n int) {
+	Posts := GetPosts()
+	Users := GetUsers()
 
-		_, err := db.Exec(`INSERT INTO comments (idPost, idUser, content_text, created_at) VALUES (?, ?, ?, ?)`,
-			postID, userID, content, createdAt)
-		if err != nil {
-			log.Fatal(err)
+	for _, post := range Posts {
+		numberOfComments := rand.Intn(n) + 1
+
+		for i := 0; i < numberOfComments; i++ {
+			content := faker.Sentence()
+			createdAt := time.Now().Format(time.RFC3339)
+			_, err := db.Exec(`INSERT INTO comments (idPost, idUser, content_text, created_at) VALUES (?, ?, ?, ?)`,
+				post.IDPost, Users[rand.Intn(len(Users))].IDUser, content, createdAt)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
-	fmt.Printf("Inserted %d random comments.\n", n)
+	fmt.Printf("Inserted random comments for %d posts.\n", len(Posts))
 }

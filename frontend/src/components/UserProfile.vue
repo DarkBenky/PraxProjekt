@@ -1,22 +1,16 @@
 <template>
     <div :class="['user-profile', { 'compact': compact, 'expanded': expanded }]">
-        <div v-if="loading" class="loading">
-            Loading user...
-        </div>
-        <div v-else-if="error" class="error">
-            {{ error }}
-        </div>
-        <div v-else class="profile-content">
+        <div class="profile-content">
             <div class="avatar">
                 {{ initials }}
             </div>
             <div class="user-info">
-                <div class="display-name">{{ user.displayName }}</div>
+                <!-- <div class="display-name">{{ user.displayName }}</div> -->
                 <div v-if="!compact" class="username">
                     <div v-if="expanded">
                         <p>Username: {{ user.username }}</p>
                         <p>Email: {{ user.email }}</p>
-                        <p>Display Name: {{ user.displayName }}</p>
+                        <!-- <p>Display Name: {{ user.displayName }}</p> -->
                         <h1>Posts</h1>
                         <div>
                             <div v-for="post in usersPosts" :key="post.idPost" class="post">
@@ -39,8 +33,8 @@ export default {
     name: 'UserProfile',
 
     props: {
-        userId: {
-            type: Number,
+        user: {
+            type: Object,
             required: true
         },
         compact: {
@@ -56,9 +50,6 @@ export default {
     data() {
         return {
             url: "http://localhost:5050",
-            user: null,
-            loading: true,
-            error: null,
             usersPosts: []
         }
     },
@@ -76,10 +67,6 @@ export default {
     },
 
     watch: {
-        userId: {
-            immediate: true,
-            handler: 'fetchUser'
-        },
         expanded: {
             immediate: true,
             handler(newVal) {
@@ -91,30 +78,12 @@ export default {
     },
 
     methods: {
-        async fetchUser() {
-            this.loading = true
-            this.error = null
-
-            try {
-                const response = await axios.get(`${this.url}/users`, {
-                    params: {
-                        id: this.userId
-                    }
-                })
-                this.user = response.data
-            } catch (error) {
-                this.error = 'Failed to load user'
-                console.error('Error fetching user:', error)
-            } finally {
-                this.loading = false
-            }
-        },
         async getUserPosts() {
             if (!this.expanded) return  // Prevent fetching if not expanded
             try {
                 const response = await axios.get(`${this.url}/posts/user`, {
                     params: {
-                        id: this.userId
+                        id: this.user.id
                     }
                 })
                 this.usersPosts = response.data
