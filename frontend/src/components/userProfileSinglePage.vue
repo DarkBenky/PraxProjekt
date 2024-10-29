@@ -1,26 +1,30 @@
 <template>
-    <div class="user-profile">
-        <nav class="user-profile-nav">
-            <router-link to="/">Home</router-link> |
-            <router-link to="/user">User Profile</router-link>
-        </nav>
-        <div v-if="loading" class="loading">Loading...</div>
-        <div v-else-if="error" class="error">{{ error }}</div>
-        <div v-else class="user-info">
-            <h2>User Profile</h2>
-            <p><strong>ID:</strong> {{ user.idUser }}</p>
-            <p><strong>Username:</strong> {{ user.username }}</p>
-            <p><strong>Display Name:</strong> {{ user.displayName }}</p>
-            <p><strong>Email:</strong> {{ user.email }}</p>
+    <div>
+        <NavBar :user="user"></NavBar>
+        <div class="user-profile">
+            <div v-if="loading" class="loading">Loading...</div>
+            <div v-else-if="error" class="error">{{ error }}</div>
+            <div v-else class="user-info">
+                <h2>User Profile</h2>
+                <p><strong>ID:</strong> {{ user.idUser }}</p>
+                <p><strong>Username:</strong> {{ user.username }}</p>
+                <p><strong>Display Name:</strong> {{ user.displayName }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
 import axios from 'axios'
+import NavBar from './NavBar.vue';
 
 export default {
     name: 'UserProfile',
+
+    components: {
+        NavBar
+    },
     data() {
         return {
             user: null,
@@ -33,7 +37,7 @@ export default {
         try {
             // Fetch user data from the API
             const response = await axios.get(`http://localhost:5050/user`, {
-                params: { id: 1}
+                params: { id: this.$store.state.userId }
             })
             this.user = response.data
         } catch (error) {
