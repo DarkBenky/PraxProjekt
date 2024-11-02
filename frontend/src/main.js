@@ -5,8 +5,9 @@ import userProfileSinglePage from './components/userProfileSinglePage.vue'
 import { createWebHistory, createRouter } from 'vue-router'
 import PostFeed from './components/PostFeed.vue'
 import { createStore } from 'vuex'
-// import AddPost from './components/AddPost.vue'
+import AddPost from './components/AddPost.vue'
 import axios from 'axios';
+import SinglePost from './components/SinglePost.vue';
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -15,7 +16,8 @@ axios.defaults.withCredentials = true;
 const routes = [
     { path: '/', component: PostFeed },
     { path: '/user', component: userProfileSinglePage },
-    // { path: '/post', component: AddPost }
+    { path: '/post/:id', component: SinglePost }, 
+    { path: '/add_post', component: AddPost }
 ]
 
 const router = createRouter({

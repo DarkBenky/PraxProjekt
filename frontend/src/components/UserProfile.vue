@@ -5,8 +5,8 @@
                 {{ initials }}
             </div>
             <div class="user-info">
-                <!-- <div class="display-name">{{ user.displayName }}</div> -->
                 <div v-if="!compact" class="username">
+                    <p v-if="user">{{ user.displayName }}</p>
                     <div v-if="expanded">
                         <p>Username: {{ user.username }}</p>
                         <p>Email: {{ user.email }}</p>
@@ -50,7 +50,7 @@ export default {
     data() {
         return {
             url: "http://localhost:5050",
-            usersPosts: []
+            usersPosts: [],
         }
     },
 

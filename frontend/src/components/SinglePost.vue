@@ -1,0 +1,230 @@
+<template>
+    <div>
+        <NavBar :user="getUserWithId($store.state.userId)"></NavBar>
+        <div class="single-post-container">
+            <div v-if="loadingPost" class="loading">
+                Loading post...
+            </div>
+
+            <div v-else-if="error" class="error">
+                {{ error }}
+            </div>
+
+            <div v-else-if="post" class="post">
+                <!-- Post Header with User Info -->
+                <div class="post-header">
+                    <UserProfile v-if="user" :user="user" />
+                    <small v-if="post" class="post-date">{{ formatDate(post.created_at) }}</small>
+                </div>
+
+                <!-- Post Content -->
+                <div class="post-content">
+                    <p>{{ post.content_text }}</p>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="comments-section">
+                    <h3>Comments</h3>
+                    <div v-if="loadingComments" class="loading">
+                        Loading comments...
+                    </div>
+                    <div v-else>
+                        <ul v-if="comments.length > 0" class="comments-list">
+                            <li v-for="comment in comments" :key="comment.idComment" class="comment">
+                                <div class="comment-header">
+                                    <UserProfile :user="getUserWithId(comment.idUser)" compact />
+                                </div>
+                                <div class="comment-content">
+                                    <p>{{ comment.content_text }}</p>
+                                    <small class="comment-date">{{ formatDate(comment.created_at) }}</small>
+                                </div>
+                            </li>
+                        </ul>
+                        <p v-else class="no-comments">No comments yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+import axios from 'axios';
+import UserProfile from './UserProfile.vue';
+import NavBar from './NavBar.vue';
+
+export default {
+    name: 'SinglePost',
+
+    components: {
+        UserProfile,
+        NavBar
+    },
+
+    data() {
+        return {
+            post: null,
+            user: null,
+            comments: [],
+            users: [],
+            loadingPost: true,
+            loadingComments: false,
+            error: null,
+            baseUrl: "http://localhost:5050"
+        };
+    },
+
+    async created() {
+        const postId = this.$route.params.id;
+        await this.fetchPost(postId);
+        await this.fetchComments(postId);
+        await this.fetchUsers();
+    },
+
+    methods: {
+        async fetchPost(postId) {
+            try {
+                const response = await axios.get(`${this.baseUrl}/post`, {
+                    params: {
+                        id: postId
+                    }
+                })
+                this.post = response.data;
+                await this.fetchUser(this.post.userID);
+            } catch (error) {
+                this.error = 'Failed to load post: ' + error.message;
+                console.error('Error fetching post:', error);
+            } finally {
+                this.loadingPost = false;
+            }
+        },
+
+        async fetchUser(userId) {
+            try {
+                const response = await axios.get(`${this.baseUrl}/users/${userId}`);
+                this.user = response.data;
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
+        },
+
+        async fetchUsers() {
+            try {
+                const response = await axios.get(`${this.baseUrl}/users`);
+                this.users = response.data;
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        },
+
+        async fetchComments(postId) {
+            this.loadingComments = true;
+            try {
+                const response = await axios.get(`${this.baseUrl}/comments`, {
+                    params: { idPost: postId }
+                });
+                this.comments = response.data;
+            } catch (error) {
+                console.error('Error fetching comments:', error);
+            } finally {
+                this.loadingComments = false;
+            }
+        },
+
+        getUserWithId(id) {
+            return this.users.find(user => user.idUser === id);
+        },
+
+        formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch (err) {
+                return dateString;
+            }
+        }
+    }
+};
+</script>
+
+<style scoped>
+.single-post-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.post {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.post-header {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.post-content {
+    padding: 1.5rem;
+}
+
+.post-date {
+    display: block;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+.comments-section {
+    padding: 1.5rem;
+    background: #f9f9f9;
+}
+
+.comments-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.comment {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    background: white;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+}
+
+.comment-header {
+    margin-bottom: 0.5rem;
+}
+
+.comment-content {
+    padding-left: 1rem;
+}
+
+.comment:last-child {
+    border-bottom: none;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666;
+}
+
+.error {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.no-comments {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 1rem;
+}
+</style>

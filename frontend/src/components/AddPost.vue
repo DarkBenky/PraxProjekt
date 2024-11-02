@@ -1,59 +1,79 @@
 <template>
-  <div class="add-post">
-    <h2>Add a Post</h2>
-    <form @submit.prevent="submitPost">
-      <label for="contentText">Content:</label>
-      <textarea id="contentText" v-model="contentText" required></textarea>
-
-      <button type="submit">Add Post</button>
-
-      <!-- Display success or error messages -->
-      <p v-if="message" :class="{ success: success, error: !success }">{{ message }}</p>
-    </form>
+  <div>
+    <NavBar :user="user"></NavBar>
+    <div class="add-post">
+      <h2>Add a Post</h2>
+      <form @submit.prevent="submitPost">
+        <label for="contentText">Content:</label>
+        <textarea id="contentText" v-model="contentText" required></textarea>
+        
+        <button type="submit">Add Post</button>
+        
+        <p v-if="message" :class="{ success: success, error: !success }">{{ message }}</p>
+      </form>
+    </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
+import NavBar from './NavBar.vue'
 
 export default {
   name: 'AddPost',
+  
+  components: {
+    NavBar
+  },
+  
   data() {
     return {
-      contentText: '',     // Content of the post
-      message: '',         // Success or error message
-      success: false       // Indicates if the operation was successful
+      user: {},
+      contentText: '',
+      message: '',
+      success: false
     }
   },
+  
+  async created() {
+    try {
+      const response = await axios.get(`http://localhost:5050/user`, {
+        params: { id: this.$store.state.userId }
+      })
+      this.user = response.data
+    } catch (error) {
+      console.error('Error fetching user data:', error)
+      this.message = 'Failed to load user data'
+      this.success = false
+    }
+  },
+  
   methods: {
     async submitPost() {
       try {
+        // Convert userId to a string
         const response = await axios.post('http://localhost:5050/addPost', {
-          userID: this.$store.state.userId,
-          content_text: this.contentText
-        }, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          userID: String(this.$store.state.userId),  // Convert userId to string
+          contentText: this.contentText
         })
-
+        
         this.message = response.data.message
         this.success = true
         this.clearForm()
-
-        //   forward to home page
-        // this.$router.push('/')
       } catch (error) {
         console.error('Error adding post:', error)
-        this.message = 'Failed to add post'
+        this.message = error.response?.data?.error || 'Failed to add post'
         this.success = false
       }
     },
+    
     clearForm() {
-      this.userID = ''
       this.contentText = ''
     }
   }
 }
 </script>
+
 
 <style scoped>
 .add-post {
