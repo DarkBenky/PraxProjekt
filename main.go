@@ -206,6 +206,72 @@ func GetAllUsers(c echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
+func AddPost(c echo.Context) error {
+    // Create a struct to bind the request data
+    type PostRequest struct {
+        UserID      string `json:"userID"`
+        ContentText string `json:"contentText"`
+    }
+
+    // Bind the request body to our struct
+    post := new(PostRequest)
+    if err := c.Bind(post); err != nil {
+		fmt.Println(err)
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Invalid request data",
+        })
+    }
+
+    // Validate input
+    if post.UserID == "" || post.ContentText == "" {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "UserID and content text are required",
+        })
+    }
+
+    // Insert post into the database
+    query := `INSERT INTO posts (userID, content_text, created_at) VALUES (?, ?, ?)`
+    result, err := db.Exec(query, post.UserID, post.ContentText, time.Now().Format(time.RFC3339))
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to insert post: " + err.Error(),
+        })
+    }
+
+    // Check if the insert was successful
+    rowsAffected, err := result.RowsAffected()
+    if err != nil || rowsAffected == 0 {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to confirm post insertion",
+        })
+    }
+
+    // Return success response
+    return c.JSON(http.StatusOK, echo.Map{
+        "message": "Post added successfully",
+    })
+}
+
+
+
+func GetPostById(c echo.Context) error {
+	postID := c.QueryParam("id")
+
+	// Get post from the database
+	query := `SELECT idPost, content_text, created_at, userID FROM posts WHERE idPost = ?`
+	row := db.QueryRow(query, postID)
+
+	var post Post
+	if err := row.Scan(&post.IDPost, &post.ContentText, &post.CreatedAt, &post.UserID); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to scan post data"})
+	}
+
+	// Return post as JSON response
+	return c.JSON(http.StatusOK, post)
+}
+
+
+
 func main() {
 
 	// Open a connection to the SQLite database
@@ -240,17 +306,19 @@ func main() {
 	e := echo.New()
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:8080"}, // Adjust as necessary
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		AllowHeaders: []string{"*"},
-		AllowCredentials: true,
-	}))
+        AllowOrigins: []string{"http://localhost:8080", "http://127.0.0.1:8080"},
+        AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+        AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+        AllowCredentials: true,
+    }))
 
 	e.GET("/posts", GetAllPosts)
 	e.GET("/comments", GetAllCommentsToPost)
 	e.GET("/user", GetUserByID)
 	e.GET("/users", GetAllUsers)
 	e.GET("/posts/user", GetPostByUserID)
+	e.GET("/post", GetPostById)
+	e.POST("addPost", AddPost)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }

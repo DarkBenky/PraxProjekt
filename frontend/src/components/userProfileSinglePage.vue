@@ -12,31 +12,46 @@
                 <p><strong>Email:</strong> {{ user.email }}</p>
             </div>
         </div>
+
+        <div class="user-posts">
+            <h2>Posts</h2>
+            <div v-if="loading" class="loading">Loading...</div>
+            <div v-else-if="error" class="error">{{ error }}</div>
+            <div v-else>
+                <PostView v-for="post in userPosts" :key="post.idPost" :post="post" :user="user" :users="users"></PostView>
+            </div>
+        </div>
+
     </div>
 </template>
 
 <script>
 import axios from 'axios'
 import NavBar from './NavBar.vue';
+import PostView from './Post.vue';
 
 export default {
     name: 'UserProfile',
 
     components: {
-        NavBar
+        NavBar,
+        PostView
     },
     data() {
         return {
-            user: null,
+            user: {},
             loading: true,
-            error: null
+            error: null,
+            userPosts: [],
+            users: [],
+            baseUrl: "http://localhost:5050"
         }
     },
 
     async created() {
         try {
             // Fetch user data from the API
-            const response = await axios.get(`http://localhost:5050/user`, {
+            const response = await axios.get(`${this.baseUrl}/user`, {
                 params: { id: this.$store.state.userId }
             })
             this.user = response.data
@@ -46,7 +61,27 @@ export default {
         } finally {
             this.loading = false
         }
-    }
+
+        try {
+            // Fetch user posts from the API
+            const response = await axios.get(`${this.baseUrl}/posts/user`, {
+                params: { id: this.$store.state.userId }
+            })
+            this.userPosts = response.data
+            console.log(this.userPosts)
+        } catch (error) {
+            console.error('Error fetching user posts:', error)
+            this.userPosts = []
+        }
+
+        try {
+                const response = await axios.get(`${this.baseUrl}/users`);
+                this.users = response.data;
+                console.log(this.users)
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+    },
 }
 </script>
 
