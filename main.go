@@ -207,13 +207,11 @@ func GetAllUsers(c echo.Context) error {
 }
 
 func AddPost(c echo.Context) error {
-    // Create a struct to bind the request data
     type PostRequest struct {
         UserID      string `json:"userID"`
         ContentText string `json:"contentText"`
     }
 
-    // Bind the request body to our struct
     post := new(PostRequest)
     if err := c.Bind(post); err != nil {
 		fmt.Println(err)
@@ -222,14 +220,12 @@ func AddPost(c echo.Context) error {
         })
     }
 
-    // Validate input
     if post.UserID == "" || post.ContentText == "" {
         return c.JSON(http.StatusBadRequest, echo.Map{
             "error": "UserID and content text are required",
         })
     }
 
-    // Insert post into the database
     query := `INSERT INTO posts (userID, content_text, created_at) VALUES (?, ?, ?)`
     result, err := db.Exec(query, post.UserID, post.ContentText, time.Now().Format(time.RFC3339))
     if err != nil {
@@ -238,7 +234,6 @@ func AddPost(c echo.Context) error {
         })
     }
 
-    // Check if the insert was successful
     rowsAffected, err := result.RowsAffected()
     if err != nil || rowsAffected == 0 {
         return c.JSON(http.StatusInternalServerError, echo.Map{
@@ -246,12 +241,55 @@ func AddPost(c echo.Context) error {
         })
     }
 
-    // Return success response
     return c.JSON(http.StatusOK, echo.Map{
         "message": "Post added successfully",
     })
 }
 
+func AddComment(c echo.Context) error {
+	type CommentRequest struct {
+		PostID      string `json:"postID"`
+		UserID      string `json:"userID"`
+		ContentText string `json:"contentText"`
+	}
+
+	comment := new(CommentRequest)
+	if err := c.Bind(comment); err != nil {
+		fmt.Println(err)
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request data",
+		})
+	}
+
+	// Validate input
+	if comment.PostID == "" || comment.UserID == "" || comment.ContentText == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "PostID, userID, and content text are required",
+		})
+	}
+
+	// Insert comment into the database
+	query := `INSERT INTO comments (idPost, idUser, content_text, created_at) VALUES (?, ?, ?, ?)`
+	result, err := db.Exec(query, comment.PostID, comment.UserID, comment.ContentText, time.Now().Format(time.RFC3339))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to insert comment: " + err.Error(),
+		})
+	}
+
+	// Check if the insert was successful
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected == 0 {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"error": "Failed to confirm comment insertion",
+		})
+	}
+
+	// Return success response
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "Comment added successfully",
+	})
+}
 
 
 func GetPostById(c echo.Context) error {
@@ -319,6 +357,7 @@ func main() {
 	e.GET("/posts/user", GetPostByUserID)
 	e.GET("/post", GetPostById)
 	e.POST("addPost", AddPost)
+	e.POST("addComment", AddComment)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
