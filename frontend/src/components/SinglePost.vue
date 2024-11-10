@@ -25,6 +25,13 @@
                 <!-- Comments Section -->
                 <div class="comments-section">
                     <h3>Comments</h3>
+
+                    <!-- Add Comment Section -->
+                    <div class="add-comment-section">
+                        <textarea v-model="newComment" placeholder="Add a comment..."></textarea>
+                        <button @click="addComment">Add Comment</button>
+                    </div>
+
                     <div v-if="loadingComments" class="loading">
                         Loading comments...
                     </div>
@@ -70,7 +77,8 @@ export default {
             loadingPost: true,
             loadingComments: false,
             error: null,
-            baseUrl: "http://localhost:5050"
+            baseUrl: "http://localhost:5050",
+            newComment: "",
         };
     },
 
@@ -82,6 +90,30 @@ export default {
     },
 
     methods: {
+        async addComment() {
+            // Ensure there is content in the new comment field
+            if (!this.newComment.trim()) {
+                alert("Comment content cannot be empty.");
+                return;
+            }
+
+            try {
+                // Make a POST request to the backend with the new comment data
+                const response = await axios.post(`${this.baseUrl}/addComment`, {
+                    postID: String(this.post.idPost),  
+                    userID: String(this.$store.state.userId),
+                    contentText: this.newComment
+                });
+
+                // If the request was successful, fetch the updated list of comments
+                if (response.status === 200) {
+                    this.newComment = ""; // Clear the comment input field
+                    await this.fetchComments(this.post.idPost); // Refresh the comments
+                }
+            } catch (error) {
+                console.error("Error adding comment:", error);
+            }
+        },
         async fetchPost(postId) {
             try {
                 const response = await axios.get(`${this.baseUrl}/post`, {
@@ -148,6 +180,53 @@ export default {
 </script>
 
 <style scoped>
+.add-comment-section {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+}
+
+.add-comment-section textarea {
+    min-height: 80px;
+    padding: 10px;
+    margin: 15px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    resize: vertical;
+    font-size: 1rem;
+    font-family: inherit;
+    margin-bottom: 0.5rem;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.add-comment-section textarea:focus {
+    border-color: #999;
+    outline: none;
+    padding: 10px;
+    margin: 15px;
+}
+
+.add-comment-section button {
+    align-self: flex-end;
+    padding: 0.5rem 1rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.add-comment-section button:hover {
+    background-color: #0056b3;
+}
+
+.add-comment-section button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
 .single-post-container {
     max-width: 800px;
     margin: 2rem auto;

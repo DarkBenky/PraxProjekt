@@ -38,6 +38,7 @@ export default {
 
     methods: {
         getUserWithId(id) {
+            if (this.users.length === 0) return null;
             return this.users.find(user => user.idUser === id);
         },
 

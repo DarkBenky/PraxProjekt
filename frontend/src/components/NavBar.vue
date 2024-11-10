@@ -2,7 +2,7 @@
   <nav class="navbar">
     <div class="nav-left">
       <router-link to="/"><h1 class="nav-title">MyApp</h1></router-link>
-      <router-link to="add_post" class="nav-link">Add Post</router-link>
+      <router-link to="/add_post" class="nav-link">Add Post</router-link>
     </div>
     <router-link to="/user" class="nav-link">
       <div class="nav-right" @click="clicked">
