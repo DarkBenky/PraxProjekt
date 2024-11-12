@@ -9,13 +9,20 @@
         <!-- Post Content -->
         <div class="post-content" @click="toggleComments">
             <p>{{ post.content_text }}</p>
-            <small class="post-date">{{ formatDate(post.created_at) }}</small>
             <button class="toggle-comments">
                 {{ isActive ? 'Hide Comments' : 'Show Comments' }}
             </button>
             <button class="toggle-comments" @click="navigateToPost">
                 Navigate to Post
             </button>
+            <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
+                <button class="toggle-delete" @click="deletePost">
+                    Delete
+                </button>
+                <button class="toggle-edit" @click="editPost">
+                    Edit
+                </button>
+            </div>
         </div>
 
         <!-- Comments Section -->
@@ -28,8 +35,8 @@
             </div>
             <div v-else>
                 <div v-if="comments">
-                     <!-- Add Comment Section -->
-                     <div class="add-comment-section">
+                    <!-- Add Comment Section -->
+                    <div class="add-comment-section">
                         <textarea v-model="newComment" placeholder="Add a comment..."></textarea>
                         <button @click="addComment">Add Comment</button>
                     </div>
@@ -82,6 +89,29 @@ export default {
     },
 
     methods: {
+        editPost() {
+            this.$router.push(`/edit/${this.post.idPost}`);
+        },
+
+        // In Post.vue, update the deletePost method:
+        async deletePost(event) {
+            event.stopPropagation(); // Prevent event bubbling
+            try {
+                const response = await axios.delete(`${this.baseUrl}/deletePost`, {
+                    data: {
+                        postID: String(this.post.idPost)
+                    }
+                });
+
+                if (response.status === 200) {
+                    // Emit event to parent to refresh posts
+                    this.$emit('post-deleted', this.post.idPost);
+                }
+            } catch (error) {
+                console.error("Error deleting post:", error);
+                alert("Failed to delete post. Please try again.");
+            }
+        },
         async addComment() {
             // Ensure there is content in the new comment field
             if (!this.newComment.trim()) {
@@ -92,7 +122,7 @@ export default {
             try {
                 // Make a POST request to the backend with the new comment data
                 const response = await axios.post(`${this.baseUrl}/addComment`, {
-                    postID: String(this.post.idPost),  
+                    postID: String(this.post.idPost),
                     userID: String(this.$store.state.userId),
                     contentText: this.newComment
                 });
@@ -282,5 +312,31 @@ export default {
 .no-comments {
     color: #666;
     font-style: italic;
+}
+
+.edit-delete-options {
+    margin-top: 1rem;
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-delete,
+.toggle-edit {
+    padding: 0.3em 0.8em;
+    background-color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.toggle-delete:hover {
+    background-color: #f44336;
+    color: white;
+}
+
+.toggle-edit:hover {
+    background-color: #4CAF50;
+    color: white;
 }
 </style>

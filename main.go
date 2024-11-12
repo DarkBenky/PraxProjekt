@@ -292,6 +292,105 @@ func AddComment(c echo.Context) error {
 }
 
 
+// In main.go, update the EditPost function:
+func EditPost(c echo.Context) error {
+    // Create struct for request body
+    type EditRequest struct {
+        PostID      string `json:"postID"`
+        ContentText string `json:"contentText"`
+    }
+
+    // Parse request body
+    var req EditRequest
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    // Validate input
+    if req.PostID == "" || req.ContentText == "" {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Post ID and content text are required",
+        })
+    }
+
+    // Update post in database
+    query := `UPDATE posts SET content_text = ? WHERE idPost = ?`
+    result, err := db.Exec(query, req.ContentText, req.PostID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to update post: " + err.Error(),
+        })
+    }
+
+    // Verify update
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to confirm update",
+        })
+    }
+    if rowsAffected == 0 {
+        return c.JSON(http.StatusNotFound, echo.Map{
+            "error": "Post not found",
+        })
+    }
+
+    return c.JSON(http.StatusOK, echo.Map{
+        "message": "Post updated successfully",
+    })
+}
+
+// In main.go, update the DeletePost function:
+func DeletePost(c echo.Context) error {
+    // Create struct for request body
+    type DeleteRequest struct {
+        PostID string `json:"postID"`
+    }
+
+    // Parse request body
+    var req DeleteRequest
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Invalid request format",
+        })
+    }
+
+    // Validate postID
+    if req.PostID == "" {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Post ID is required",
+        })
+    }
+
+    // Delete post from database
+    query := `DELETE FROM posts WHERE idPost = ?`
+    result, err := db.Exec(query, req.PostID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to delete post: " + err.Error(),
+        })
+    }
+
+    // Verify deletion
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to confirm deletion",
+        })
+    }
+    if rowsAffected == 0 {
+        return c.JSON(http.StatusNotFound, echo.Map{
+            "error": "Post not found",
+        })
+    }
+
+    return c.JSON(http.StatusOK, echo.Map{
+        "message": "Post deleted successfully",
+    })
+}
+
 func GetPostById(c echo.Context) error {
 	postID := c.QueryParam("id")
 
@@ -327,18 +426,18 @@ func main() {
 	createCommentsTable(database)
 
 	// Generate random users, posts, and comments
-	n := 5 // Number of random entries to generate
+	// n := 10 // Number of random entries to generate
 
-	fmt.Printf("Generating %d random users...\n", n)
-	insertRandomUsers(n)
+	// fmt.Printf("Generating %d random users...\n", n)
+	// insertRandomUsers(n)
 
-	n = n / 2
-	fmt.Printf("Generating %d random posts...\n", n)
-	insertRandomPosts(n)
+	// n = n / 2
+	// fmt.Printf("Generating %d random posts...\n", n)
+	// insertRandomPosts(n)
 
-	n = n / 2
-	fmt.Printf("Generating %d random comments...\n", n)
-	insertRandomComments(n)
+	// n = n / 2
+	// fmt.Printf("Generating %d random comments...\n", n)
+	// insertRandomComments(n)
 
 	// Start the server
 	e := echo.New()
@@ -358,6 +457,8 @@ func main() {
 	e.GET("/post", GetPostById)
 	e.POST("addPost", AddPost)
 	e.POST("addComment", AddComment)
+	e.DELETE("deletePost", DeletePost)
+	e.PUT("editPost", EditPost)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }

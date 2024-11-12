@@ -18,7 +18,7 @@
             <div v-if="loading" class="loading">Loading...</div>
             <div v-else-if="error" class="error">{{ error }}</div>
             <div v-else>
-                <PostView v-for="post in userPosts" :key="post.idPost" :post="post" :user="user" :users="users"></PostView>
+                <PostView @post-deleted="removePost" v-for="post in userPosts" :key="post.idPost" :post="post" :user="user" :users="users "></PostView>
             </div>
         </div>
 
@@ -45,6 +45,13 @@ export default {
             userPosts: [],
             users: [],
             baseUrl: "http://localhost:5050"
+        }
+    },
+
+    methods: {
+        removePost(postId) {
+            // Remove the post from the local posts array
+            this.userPosts = this.userPosts.filter(post => post.idPost !== postId);
         }
     },
 
