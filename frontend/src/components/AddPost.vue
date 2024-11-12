@@ -60,6 +60,10 @@ export default {
         this.message = response.data.message
         this.success = true
         this.clearForm()
+
+        // transefer to the post feed page
+        this.$router.push({path: '/'})
+
       } catch (error) {
         console.error('Error adding post:', error)
         this.message = error.response?.data?.error || 'Failed to add post'

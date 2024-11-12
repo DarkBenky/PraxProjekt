@@ -20,6 +20,14 @@
                 <!-- Post Content -->
                 <div class="post-content">
                     <p>{{ post.content_text }}</p>
+                    <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
+                        <button class="toggle-delete" @click="deletePost(post.idPost)">
+                            Delete
+                        </button>
+                        <button class="toggle-edit" @click="editPost">
+                            Edit
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Comments Section -->
@@ -36,7 +44,7 @@
                         Loading comments...
                     </div>
                     <div v-else>
-                        <ul v-if="comments.length > 0" class="comments-list">
+                        <ul v-if="comments" class="comments-list">
                             <li v-for="comment in comments" :key="comment.idComment" class="comment">
                                 <div class="comment-header">
                                     <UserProfile :user="getUserWithId(comment.idUser)" compact />
@@ -90,6 +98,24 @@ export default {
     },
 
     methods: {
+        async deletePost(postID) {
+            try {
+                const response = await axios.delete(`${this.baseUrl}/deletePost`, {
+                    data: { postID: String(postID) }
+                });
+
+                if (response.status === 200) {
+                    this.$router.push('/');
+                }
+            } catch (error) {
+                console.error("Error deleting post:", error);
+                alert("Failed to delete post. Please try again.");
+            }
+        },
+
+        editPost() {
+            this.$router.push(`/edit/${this.post.idPost}`);
+        },
         async addComment() {
             // Ensure there is content in the new comment field
             if (!this.newComment.trim()) {
@@ -100,7 +126,7 @@ export default {
             try {
                 // Make a POST request to the backend with the new comment data
                 const response = await axios.post(`${this.baseUrl}/addComment`, {
-                    postID: String(this.post.idPost),  
+                    postID: String(this.post.idPost),
                     userID: String(this.$store.state.userId),
                     contentText: this.newComment
                 });
@@ -306,4 +332,31 @@ export default {
     font-style: italic;
     padding: 1rem;
 }
+
+.edit-delete-options {
+    margin-top: 1rem;
+    display: flex;
+    gap: 10px;
+}
+
+.toggle-delete,
+.toggle-edit {
+    padding: 0.3em 0.8em;
+    background-color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.toggle-delete:hover {
+    background-color: #f44336;
+    color: white;
+}
+
+.toggle-edit:hover {
+    background-color: #4CAF50;
+    color: white;
+}
+
 </style>

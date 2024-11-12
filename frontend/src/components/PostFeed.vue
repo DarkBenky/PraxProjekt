@@ -3,7 +3,8 @@
         <NavBar :user="getUserWithId($store.state.userId)"></NavBar>
         <div class="feed-container">
             <div class="posts-section">
-                <PostView v-for="post in posts" :key="post.idPost" :post="post" :user="getUserWithId(post.userID)" :users="users"/>
+                <PostView v-for="post in posts" :key="post.idPost" :post="post" :user="getUserWithId(post.userID)"
+                    :users="users" @post-deleted="removePost" />
             </div>
         </div>
     </div>
@@ -37,6 +38,10 @@ export default {
     },
 
     methods: {
+        removePost(postId) {
+            // Remove the post from the local posts array
+            this.posts = this.posts.filter(post => post.idPost !== postId);
+        },
         getUserWithId(id) {
             if (this.users.length === 0) return null;
             return this.users.find(user => user.idUser === id);
