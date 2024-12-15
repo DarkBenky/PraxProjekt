@@ -32,7 +32,7 @@ const router = createRouter({
 const store = createStore({
     state() {
         return {
-            userId: 1,
+            userId: -1,
             currentUser: null
         }
     },

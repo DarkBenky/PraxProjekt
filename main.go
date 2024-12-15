@@ -469,6 +469,7 @@ func main() {
 	e.DELETE("deletePost", DeletePost)
 	e.PUT("editPost", EditPost)
 	e.POST("/login", Login)
+	e.PUT("/userEdit", UpdateUser)
 	e.Logger.Fatal(e.Start(":5050"))
 
 }
@@ -497,7 +498,64 @@ func InsertTestUser() {
 
 	fmt.Printf("Inserted random post and comment for test user.\n")
 }
-	
+
+type UpdateUserRequest struct {
+    ID          int    `json:"id"`
+    Username    string `json:"username"`
+    DisplayName string `json:"displayName"`
+    Email       string `json:"email"`
+}
+
+func UpdateUser(c echo.Context) error {
+    var req UpdateUserRequest
+    if err := c.Bind(&req); err != nil {
+        return c.JSON(http.StatusBadRequest, echo.Map{
+            "error": "Invalid request payload",
+        })
+    }
+
+
+    // Update the user in the database
+    stmt, err := db.Prepare("UPDATE users SET username = ?, displayName = ?, email = ? WHERE idUser = ?")
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Database error",
+        })
+    }
+    defer stmt.Close()
+
+    res, err := stmt.Exec(req.Username, req.DisplayName, req.Email, req.ID)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to update user",
+        })
+    }
+
+    rowsAffected, err := res.RowsAffected()
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Database error",
+        })
+    }
+
+    if rowsAffected == 0 {
+        return c.JSON(http.StatusNotFound, echo.Map{
+            "error": "User not found",
+        })
+    }
+
+    // Retrieve the updated user
+    var updatedUser User
+    err = db.QueryRow("SELECT idUser, username, displayName, email FROM users WHERE idUser = ?", req.ID).
+        Scan(&updatedUser.IDUser, &updatedUser.Username, &updatedUser.DisplayName, &updatedUser.Email)
+    if err != nil {
+        return c.JSON(http.StatusInternalServerError, echo.Map{
+            "error": "Failed to retrieve updated user",
+        })
+    }
+
+    return c.JSON(http.StatusOK, updatedUser)
+}
 
 type LoginRequest struct {
     Username string `json:"username"`
