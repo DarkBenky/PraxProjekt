@@ -16,11 +16,18 @@ import (
 
 var db *sql.DB
 
+const (
+	testing = true
+	testingLogin = "test"
+	testingPassword = "test"
+)
+
 type User struct {
 	IDUser      int    `json:"idUser"`
 	Username    string `json:"username"`
 	DisplayName string `json:"displayName"`
 	Email       string `json:"email"`
+	Password    string `json:"password"`
 }
 
 type Post struct {
@@ -439,6 +446,8 @@ func main() {
 	// fmt.Printf("Generating %d random comments...\n", n)
 	// insertRandomComments(n)
 
+	InsertTestUser()
+
 	// Start the server
 	e := echo.New()
 
@@ -459,8 +468,69 @@ func main() {
 	e.POST("addComment", AddComment)
 	e.DELETE("deletePost", DeletePost)
 	e.PUT("editPost", EditPost)
+	e.POST("/login", Login)
 	e.Logger.Fatal(e.Start(":5050"))
 
+}
+
+func InsertTestUser() {
+	_, err := db.Exec(`INSERT INTO users (username, displayName, email, password) VALUES (?, ?, ?, ?)`,
+		testingLogin, testingLogin,testingLogin + "@gmail.com", testingPassword)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Inserted test user.\n")
+
+	// insert random post and comment for test user
+	_, err = db.Exec(`INSERT INTO posts (content_text, created_at, userID) VALUES (?, ?, ?)`,
+		faker.Sentence(), time.Now().Format(time.RFC3339), 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = db.Exec(`INSERT INTO comments (idPost, idUser, content_text, created_at) VALUES (?, ?, ?, ?)`,
+		1, 1, faker.Sentence(), time.Now().Format(time.RFC3339))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Inserted random post and comment for test user.\n")
+}
+	
+
+type LoginRequest struct {
+    Username string `json:"username"`
+    Password string `json:"password"`
+}
+
+func Login(c echo.Context) error {
+	var req LoginRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Invalid request format",
+		})
+	}
+
+	// Validate input
+	if req.Username == "" || req.Password == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"error": "Username and password are required",
+		})
+	}
+
+	// Check if user exists
+	query := `SELECT idUser, username, displayName, email FROM users WHERE username = ? AND password = ?`
+	row := db.QueryRow(query, req.Username, req.Password)
+
+	var user User
+	if err := row.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
+		return c.JSON(http.StatusUnauthorized, echo.Map{
+			"error": "Invalid username or password",
+		})
+	}
+
+	return c.JSON(http.StatusOK, user)
 }
 
 // Create Users table
@@ -469,7 +539,8 @@ func createUsersTable(db *sql.DB) {
 		"idUser" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
 		"username" TEXT,
 		"displayName" TEXT,
-		"email" TEXT
+		"email" TEXT,
+		"password" TEXT
 	);`
 	statement, err := db.Prepare(createTableSQL)
 	if err != nil {
@@ -536,8 +607,9 @@ func insertRandomUsers(n int) {
 		username := faker.Username()
 		displayName := faker.Username()
 		email := faker.Email()
-		_, err := db.Exec(`INSERT INTO users (username, displayName, email) VALUES (?, ?, ?)`,
-			username, displayName, email)
+		password := faker.Password()
+		_, err := db.Exec(`INSERT INTO users (username, displayName, email, password) VALUES (?, ?, ?, ?)`,
+			username, displayName, email, password)
 		if err != nil {
 			log.Fatal(err)
 		}

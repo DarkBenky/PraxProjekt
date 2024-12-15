@@ -9,6 +9,7 @@ import AddPost from './components/AddPost.vue'
 import axios from 'axios';
 import SinglePost from './components/SinglePost.vue';
 import EditPost from './components/EditPost.vue';
+import LoginPage from './components/LoginPage.vue';
 
 axios.defaults.baseURL = 'http://localhost:5050';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -19,7 +20,8 @@ const routes = [
     { path: '/user', component: userProfileSinglePage },
     { path: '/post/:id', component: SinglePost }, 
     { path: '/add_post', component: AddPost },
-    { path: '/edit/:id', component: EditPost }
+    { path: '/edit/:id', component: EditPost },
+    { path: '/login', component: LoginPage },
 ]
 
 const router = createRouter({
