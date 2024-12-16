@@ -19,14 +19,25 @@
 
                 <!-- Post Content -->
                 <div class="post-content">
-                    <p>{{ post.content_text }}</p>
-                    <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
-                        <button class="toggle-delete" @click="deletePost(post.idPost)">
-                            Delete
-                        </button>
-                        <button class="toggle-edit" @click="editPost">
-                            Edit
-                        </button>
+                    <!-- Edit mode -->
+                    <div v-if="isEditing" class="edit-mode">
+                        <textarea v-model="editedContent" class="edit-textarea"></textarea>
+                        <div class="edit-buttons">
+                            <button class="save-edit" @click="saveEdit">Save</button>
+                            <button class="cancel-edit" @click="cancelEdit">Cancel</button>
+                        </div>
+                    </div>
+                    <!-- View mode -->
+                    <div v-else>
+                        <p>{{ post.content_text }}</p>
+                        <div class="edit-delete-options" v-if="post.userID === $store.state.userId">
+                            <button class="toggle-delete" @click="deletePost(post.idPost)">
+                                Delete
+                            </button>
+                            <button class="toggle-edit" @click="startEdit">
+                                Edit
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -87,6 +98,8 @@ export default {
             error: null,
             baseUrl: "http://localhost:5050",
             newComment: "",
+            isEditing: false,
+            editedContent: ""
         };
     },
 
@@ -199,6 +212,32 @@ export default {
                 return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
             } catch (err) {
                 return dateString;
+            }
+        },
+
+        startEdit() {
+            this.isEditing = true;
+            this.editedContent = this.post.content_text;
+        },
+
+        cancelEdit() {
+            this.isEditing = false;
+            this.editedContent = "";
+        },
+
+        async saveEdit() {
+            try {
+                const response = await axios.put(`${this.baseUrl}/editPost`, {
+                    postID: String(this.post.idPost),
+                    contentText: this.editedContent
+                });
+
+                if (response.status === 200) {
+                    this.post.content_text = this.editedContent;
+                    this.isEditing = false;
+                }
+            } catch (error) {
+                console.error("Error saving edit:", error);
             }
         }
     }
@@ -359,4 +398,58 @@ export default {
     color: white;
 }
 
+.edit-mode {
+    display: flex;
+    flex-direction: column;
+}
+
+.edit-textarea {
+    min-height: 100px;
+    padding: 10px;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    resize: vertical;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.edit-textarea:focus {
+    border-color: #999;
+    outline: none;
+}
+
+.edit-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.save-edit,
+.cancel-edit {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.save-edit {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.save-edit:hover {
+    background-color: #45a049;
+}
+
+.cancel-edit {
+    background-color: #e0e0e0;
+}
+
+.cancel-edit:hover {
+    background-color: #d4d4d4;
+}
 </style>

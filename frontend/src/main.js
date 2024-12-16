@@ -42,6 +42,10 @@ const store = createStore({
         },
         setCurrentUser(state, user) {
             state.currentUser = user
+        },
+        logout(state) {
+            state.currentUser = null
+            state.userId = -1
         }
     },
     getters: {

@@ -446,7 +446,7 @@ func main() {
 	// fmt.Printf("Generating %d random comments...\n", n)
 	// insertRandomComments(n)
 
-	InsertTestUser()
+	// InsertTestUser()
 
 	// Start the server
 	e := echo.New()
@@ -464,10 +464,10 @@ func main() {
 	e.GET("/users", GetAllUsers)
 	e.GET("/posts/user", GetPostByUserID)
 	e.GET("/post", GetPostById)
-	e.POST("addPost", AddPost)
-	e.POST("addComment", AddComment)
-	e.DELETE("deletePost", DeletePost)
-	e.PUT("editPost", EditPost)
+	e.POST("/addPost", AddPost)
+	e.POST("/addComment", AddComment)
+	e.DELETE("/deletePost", DeletePost)
+	e.PUT("/editPost", EditPost)
 	e.POST("/login", Login)
 	e.PUT("/userEdit", UpdateUser)
 	e.Logger.Fatal(e.Start(":5050"))
@@ -578,8 +578,8 @@ func Login(c echo.Context) error {
 	}
 
 	// Check if user exists
-	query := `SELECT idUser, username, displayName, email FROM users WHERE username = ? AND password = ?`
-	row := db.QueryRow(query, req.Username, req.Password)
+	query := `SELECT idUser, username, displayName, email FROM users WHERE (username = ? OR email = ?) AND password = ?`
+	row := db.QueryRow(query, req.Username, req.Username, req.Password)
 
 	var user User
 	if err := row.Scan(&user.IDUser, &user.Username, &user.DisplayName, &user.Email); err != nil {
@@ -595,9 +595,9 @@ func Login(c echo.Context) error {
 func createUsersTable(db *sql.DB) {
 	createTableSQL := `CREATE TABLE IF NOT EXISTS users (
 		"idUser" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,		
-		"username" TEXT,
-		"displayName" TEXT,
-		"email" TEXT,
+		"username" TEXT UNIQUE,
+		"displayName" TEXT UNIQUE,
+		"email" TEXT UNIQUE,
 		"password" TEXT
 	);`
 	statement, err := db.Prepare(createTableSQL)

@@ -1,99 +1,102 @@
 <template>
   <div class="edit-post">
-      <NavBar :user="getUserWithId($store.state.userId)"></NavBar>
-      <div v-if="loading">Loading...</div>
-      <div v-else-if="error">{{ error }}</div>
-      <div v-else class="edit-form">
-          <h2>Edit Post</h2>
-          <textarea 
-              v-model="postContent" 
-              rows="5" 
-              placeholder="Edit your post..."
-          ></textarea>
-          <div class="buttons">
-              <button @click="savePost">Save Changes</button>
-              <button @click="cancel">Cancel</button>
-          </div>
+    <!-- <NavBar :user="getUserWithId($store.state.userId)"></NavBar> -->
+    <div v-if="loading">Loading...</div>
+    <div v-else-if="error">{{ error }}</div>
+    <div v-else class="edit-form">
+      <h2>Edit Post</h2>
+      <textarea
+        v-model="postContent"
+        rows="5"
+        placeholder="Edit your post..."
+      ></textarea>
+      <div class="buttons">
+        <button @click="savePost">Save Changes</button>
+        <button @click="cancel">Cancel</button>
       </div>
+    </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-import NavBar from './NavBar.vue';
+import axios from "axios";
+// import NavBar from "./NavBar.vue";
 
 export default {
-  name: 'EditPost',
+  name: "EditPost",
   components: {
-      NavBar
+    // NavBar,
   },
 
   data() {
-      return {
-          postContent: '',
-          loading: true,
-          error: null,
-          users: [],
-          baseUrl: 'http://localhost:5050'
-      }
+    return {
+      postContent: "",
+      loading: true,
+      error: null,
+      users: [],
+      baseUrl: "http://localhost:5050",
+    };
   },
 
   async created() {
-      try {
-          // Get post ID from route params
-          const postId = this.$route.params.id;
-          console.log(postId);
-          // Fetch post data
-          const response = await axios.get(`${this.baseUrl}/post`, {
-              params: {
-                  id: postId
-              }
-          });
-          this.postContent = response.data.content_text;
-          await this.fetchUsers();
-      } catch (error) {
-          console.error('Error fetching post data:', error);
-          this.error = 'Failed to load post';
-      } finally {
-          this.loading = false;
-      }
+    if (this.$store.state.userId == -1) {
+      this.$router.push({ path: "/" });
+    }
+    try {
+      // Get post ID from route params
+      const postId = this.$route.params.id;
+      console.log(postId);
+      // Fetch post data
+      const response = await axios.get(`${this.baseUrl}/post`, {
+        params: {
+          id: postId,
+        },
+      });
+      this.postContent = response.data.content_text;
+      await this.fetchUsers();
+    } catch (error) {
+      console.error("Error fetching post data:", error);
+      this.error = "Failed to load post";
+    } finally {
+      this.loading = false;
+    }
   },
 
   methods: {
-      async fetchUsers() {
-          try {
-              const response = await axios.get(`${this.baseUrl}/users`);
-              this.users = response.data;
-          } catch (error) {
-              console.error('Error fetching users:', error);
-          }
-      },
-
-      getUserWithId(id) {
-          return this.users.find(user => user.idUser === id);
-      },
-
-      async savePost() {
-          try {
-              const response = await axios.put(`${this.baseUrl}/editPost`, {
-                  postID: String(this.$route.params.id),
-                  contentText: this.postContent
-              });
-
-              if (response.status === 200) {
-                  this.$router.push('/');
-              }
-          } catch (error) {
-              console.error('Error updating post:', error);
-              this.error = 'Failed to update post';
-          }
-      },
-
-      cancel() {
-          this.$router.push('/');
+    async fetchUsers() {
+      try {
+        const response = await axios.get(`${this.baseUrl}/users`);
+        this.users = response.data;
+      } catch (error) {
+        console.error("Error fetching users:", error);
       }
-  }
-}
+    },
+
+    getUserWithId(id) {
+      return this.users.find((user) => user.idUser === id);
+    },
+
+    async savePost() {
+      try {
+        const response = await axios.put(`${this.baseUrl}/editPost`, {
+          postID: String(this.$route.params.id),
+          contentText: this.postContent,
+        });
+
+        if (response.status === 200) {
+          this.$router.push("/");
+        }
+      } catch (error) {
+        console.error("Error updating post:", error);
+        this.error = "Failed to update post";
+      }
+    },
+
+    cancel() {
+      this.$router.push("/");
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -107,7 +110,7 @@ export default {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 textarea {
@@ -134,7 +137,7 @@ button {
 }
 
 button:first-child {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
 }
 

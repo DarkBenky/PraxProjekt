@@ -34,18 +34,12 @@ export default {
       success: false
     }
   },
-  
+
   async created() {
-    try {
-      const response = await axios.get(`http://localhost:5050/user`, {
-        params: { id: this.$store.state.userId }
-      })
-      this.user = response.data
-    } catch (error) {
-      console.error('Error fetching user data:', error)
-      this.message = 'Failed to load user data'
-      this.success = false
+    if (this.$store.state.userId == -1) {
+      this.$router.push({path: '/'})
     }
+
   },
   
   methods: {

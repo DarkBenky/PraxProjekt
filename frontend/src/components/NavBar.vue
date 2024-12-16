@@ -20,6 +20,9 @@
       <router-link v-else to="/login" class="nav-link">
         Login
       </router-link>
+      <div class="nav-link" v-if="this.$store.state.userId != -1">
+        <h3  @click="logout">Logout</h3>
+      </div>
     </div>
   </nav>
 </template>
@@ -43,6 +46,16 @@ export default {
     user: {
       type: Object,
       required: true,
+    },
+  },
+
+  methods: {
+    clicked() {
+      this.expanded = !this.expanded;
+    },
+    logout() {
+      this.$store.commit("logout");
+      this.$router.push("/");
     },
   },
 };
