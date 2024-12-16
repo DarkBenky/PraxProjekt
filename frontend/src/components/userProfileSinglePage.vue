@@ -92,6 +92,8 @@ export default {
             updateError: null,
         }
     },
+
+
     methods: {
         toggleEdit() {
             this.isEditing = !this.isEditing
@@ -126,6 +128,9 @@ export default {
         }
     },
     async created() {
+        if (this.$store.state.userId == -1) {
+            this.$router.push({ path: '/' });
+        }
         try {
             // Fetch user data from the API
             const response = await axios.get(`${this.baseUrl}/user`, {
